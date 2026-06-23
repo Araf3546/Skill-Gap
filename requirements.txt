@@ -1,0 +1,36 @@
+# Core ML/NLP Libraries
+spacy==3.7.2
+skillNer==1.0.3
+nltk==3.8.1
+
+# Database
+SQLAlchemy==2.0.25
+psycopg2-binary==2.9.12
+psycopg2-pool==1.2
+
+# Web Framework (when you deploy)
+Flask==3.0.0
+flask-cors==4.0.0
+
+# API & Data Processing
+requests==2.31.0
+pandas==2.1.4
+
+# Environment & Configuration
+python-dotenv==1.0.0
+
+# Jupyter (optional - for notebooks) - Python 3.9 compatible
+jupyter==1.0.0
+ipython==8.12.3
+
+# Testing
+pytest==7.4.4
+pytest-cov==4.1.0
+
+# Code Quality (optional but recommended for deployment)
+black==23.12.1
+flake8==6.1.0
+pylint==3.0.3
+
+# Logging & Monitoring
+python-logging-loki==0.3.1
