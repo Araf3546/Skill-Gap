@@ -1,10 +1,52 @@
-import spacy
-from skillNer.general_params import SKILL_DB
-from skillNer.skill_extractor_class import SkillExtractor
-
-from spacy.matcher import PhraseMatcher
-from typing import List, Dict, Set
+import json
 import logging
+import re
+from pathlib import Path
+from typing import Dict, List
+
+try:
+    import spacy
+    from skillNer.general_params import SKILL_DB
+    from skillNer.skill_extractor_class import SkillExtractor
+    from spacy.matcher import PhraseMatcher
+except Exception:  # pragma: no cover - optional dependency fallback
+    spacy = None
+    SKILL_DB = None
+    SkillExtractor = None
+    PhraseMatcher = None
+
+
+COMMON_SKILLS = [
+    "Python",
+    "JavaScript",
+    "TypeScript",
+    "Java",
+    "Django",
+    "React",
+    "Node.js",
+    "Spring Boot",
+    "PostgreSQL",
+    "MongoDB",
+    "Redis",
+    "Docker",
+    "Kubernetes",
+    "AWS",
+    "GCP",
+    "Azure",
+    "TensorFlow",
+    "PyTorch",
+    "Machine Learning",
+    "Deep Learning",
+    "MLOps",
+    "Spark",
+    "Hadoop",
+    "SQL",
+    "Git",
+    "Jenkins",
+    "Agile",
+    "Scrum",
+    "TDD",
+]
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,18 +58,21 @@ class SkillExtractorPipeline:
     def __init__(self):
         """Initialize the skill extractor"""
         try:
-            # Load spaCy model
-            logger.info("Loading spaCy model...")
-            self.nlp = spacy.load("en_core_web_lg")
-            
-            # Initialize skillNER
-            logger.info("Initializing skillNER...")
-            self.skill_extractor = SkillExtractor(self.nlp, SKILL_DB, PhraseMatcher)
-            
-            logger.info("Skill extractor initialized successfully")
+            self.fallback_mode = spacy is None or SkillExtractor is None
+            if not self.fallback_mode:
+                # Load spaCy model
+                logger.info("Loading spaCy model...")
+                self.nlp = spacy.load("en_core_web_lg")
+
+                # Initialize skillNER
+                logger.info("Initializing skillNER...")
+                self.skill_extractor = SkillExtractor(self.nlp, SKILL_DB, PhraseMatcher)
+
+                logger.info("Skill extractor initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize skill extractor: {e}")
-            raise
+            logger.warning(f"Falling back to lightweight skill extraction: {e}")
+            self.fallback_mode = True
+            self.skill_extractor = None
     
     def extract_skills(self, text: str, threshold: float = 0.5) -> Dict[str, any]:
         """
@@ -45,6 +90,19 @@ class SkillExtractorPipeline:
             return {"skills": [], "metadata": {}}
         
         try:
+            if self.fallback_mode:
+                skills = self._extract_skills_fallback(text)
+                return {
+                    "skills": skills,
+                    "metadata": {
+                        "total_skills": len(skills),
+                        "full_matches": len(skills),
+                        "ngram_matches": 0,
+                        "text_length": len(text),
+                        "fallback": True,
+                    },
+                }
+
             # Extract skills using skillNER
             annotations = self.skill_extractor.annotate(text)
             
@@ -74,7 +132,31 @@ class SkillExtractorPipeline:
             
         except Exception as e:
             logger.error(f"Skill extraction failed: {e}")
-            return {"skills": [], "metadata": {"error": str(e)}}
+            skills = self._extract_skills_fallback(text)
+            return {
+                "skills": skills,
+                "metadata": {"error": str(e), "fallback": True, "text_length": len(text)},
+            }
+
+    def _normalize_text(self, text: str) -> str:
+        return re.sub(r"[^a-z0-9\+\#]+", " ", text.lower())
+
+    def _extract_skills_fallback(self, text: str) -> List[Dict]:
+        normalized_text = self._normalize_text(text)
+        extracted = []
+        seen = set()
+
+        for skill in COMMON_SKILLS:
+            normalized_skill = self._normalize_text(skill).strip()
+            if normalized_skill and normalized_skill in normalized_text and skill.lower() not in seen:
+                seen.add(skill.lower())
+                extracted.append({
+                    "skill": skill,
+                    "type": "Hard Skill",
+                    "confidence": 1.0,
+                })
+
+        return extracted
     
     def _process_full_matches(self, matches: List[Dict]) -> List[Dict]:
         """Process full skill matches"""

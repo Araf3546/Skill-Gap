@@ -1,18 +1,58 @@
-import numpy as np
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+import re
+from typing import Any
+
+try:
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    from sklearn.metrics.pairwise import cosine_similarity
+except Exception:  # pragma: no cover - optional dependency fallback
+    np = None
+    SentenceTransformer = None
+    cosine_similarity = None
 
 class SkillMatcher:
     def __init__(self):
-        # Pre-trained model: fast and accurate
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = None
+        self.fallback_mode = SentenceTransformer is None or cosine_similarity is None
+        if not self.fallback_mode:
+            try:
+                # Pre-trained model: fast and accurate
+                self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception:
+                self.model = None
+                self.fallback_mode = True
     
-    def get_skill_embedding(self, skill: str) -> np.ndarray:
+    def get_skill_embedding(self, skill: str) -> Any:
         """Convert skill to vector"""
+        if self.fallback_mode or self.model is None:
+            return skill
         return self.model.encode(skill, convert_to_tensor=False)
+
+    def _normalize_skill(self, skill: str) -> str:
+        return re.sub(r"[^a-z0-9\+\#]+", " ", skill.lower()).strip()
+
+    def _fallback_similarity(self, skill1: str, skill2: str) -> float:
+        normalized_1 = self._normalize_skill(skill1)
+        normalized_2 = self._normalize_skill(skill2)
+
+        if not normalized_1 or not normalized_2:
+            return 0.0
+
+        if normalized_1 == normalized_2:
+            return 1.0
+
+        tokens_1 = set(normalized_1.split())
+        tokens_2 = set(normalized_2.split())
+        if not tokens_1 or not tokens_2:
+            return 0.0
+
+        return len(tokens_1 & tokens_2) / len(tokens_1 | tokens_2)
     
     def calculate_similarity(self, skill1: str, skill2: str) -> float:
         """Calculate similarity between two skills (0-1)"""
+        if self.fallback_mode or self.model is None:
+            return self._fallback_similarity(skill1, skill2)
+
         emb1 = self.get_skill_embedding(skill1)
         emb2 = self.get_skill_embedding(skill2)
         similarity = cosine_similarity([emb1], [emb2])[0][0]

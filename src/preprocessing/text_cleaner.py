@@ -1,22 +1,39 @@
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
-from nltk.corpus import wordnet
-nltk.download('punkt')
-nltk.download('punkt_tab')
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('averaged_perceptron_tagger')
+
+try:
+    import nltk
+    from nltk.corpus import stopwords
+    from nltk.stem import WordNetLemmatizer
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import wordnet
+except Exception:  # pragma: no cover - optional dependency fallback
+    nltk = None
+    stopwords = None
+    WordNetLemmatizer = None
+    word_tokenize = None
+    wordnet = None
+
+DEFAULT_STOP_WORDS = {
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+    'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were', 'will',
+    'with', 'this', 'these', 'those', 'or', 'if', 'into', 'than', 'then', 'their',
+    'they', 'them', 'you', 'your', 'we', 'our', 'i'
+}
 
 class TextPreprocessor:
     
     def __init__(self, remove_stopwords=True, lemmatize=True):
         self.remove_stopwords = remove_stopwords
         self.lemmatize = lemmatize
-        self.stop_words = set(stopwords.words('english'))
-        self.lemmatizer = WordNetLemmatizer()
+        if stopwords is not None:
+            try:
+                self.stop_words = set(stopwords.words('english'))
+            except Exception:
+                self.stop_words = set(DEFAULT_STOP_WORDS)
+        else:
+            self.stop_words = set(DEFAULT_STOP_WORDS)
+
+        self.lemmatizer = WordNetLemmatizer() if WordNetLemmatizer is not None else None
 
     def clean_text(self, text):
 
@@ -27,7 +44,13 @@ class TextPreprocessor:
         return text
 
     def tokenize(self, text):
-        return word_tokenize(text)
+        if word_tokenize is not None:
+            try:
+                return word_tokenize(text)
+            except Exception:
+                pass
+
+        return re.findall(r"[A-Za-z0-9\+\#\.]+", text)
 
     def remove_stop_words(self, tokens):
 
@@ -36,7 +59,13 @@ class TextPreprocessor:
         return [word for word in tokens if word not in custom_stops]
     
     def lemmatize_tokens(self, tokens):
-        return [self.lemmatizer.lemmatize(word, pos='v') for word in tokens]
+        if self.lemmatizer is None:
+            return tokens
+
+        try:
+            return [self.lemmatizer.lemmatize(word, pos='v') for word in tokens]
+        except Exception:
+            return tokens
     
     def preprocess(self, text):
 
@@ -52,7 +81,7 @@ class TextPreprocessor:
         if self.lemmatize:
             tokens = self.lemmatize_tokens(tokens)
 
-            return tokens
+        return tokens
 
 if __name__ == "__main__":
     preprocessor = TextPreprocessor()

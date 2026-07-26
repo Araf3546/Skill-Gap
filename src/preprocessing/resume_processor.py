@@ -1,4 +1,3 @@
-import pdfplumber
 import re
 from pathlib import Path
 from src.extraction.skill_extractor import SkillExtractorPipeline
@@ -13,6 +12,8 @@ class ResumeProcessor:
         """Extract text from PDF"""
         text = ""
         try:
+            import pdfplumber
+
             with pdfplumber.open(pdf_path) as pdf:
                 for page in pdf.pages:
                     text += page.extract_text() or ""
