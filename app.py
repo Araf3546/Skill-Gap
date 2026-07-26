@@ -3,8 +3,10 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from config import Config
 from src.database.models import db
+
 login_manager = LoginManager()
 jwt = JWTManager()
+
 
 def create_app():
     app = Flask(__name__)
@@ -26,7 +28,11 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    from src.cli import register_cli
+    register_cli(app)
+
     return app
+
 
 if __name__ == '__main__':
     app = create_app()

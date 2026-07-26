@@ -36,6 +36,8 @@ class User(db.Model, UserMixin):
     totp_secret_encrypted = Column(String(500), nullable=True)  # 2FA secret, encrypted
     is_2fa_enabled = Column(Boolean, default=False)
 
+    is_banned = Column(Boolean, default=False, nullable=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 

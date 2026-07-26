@@ -15,3 +15,8 @@ class Config:
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
     # Encryption key (Day 13 generates this)
     FERNET_KEY = os.environ.get('FERNET_KEY')
+    
+    SESSION_COOKIE_HTTPONLY = True   # JS can't read session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF mitigation
+    SESSION_COOKIE_SECURE = True     # HTTPS only (set False for local http testing)
+    PERMANENT_SESSION_LIFETIME = 3600
