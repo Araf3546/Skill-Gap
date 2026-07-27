@@ -1,4 +1,5 @@
 import hashlib
+from typing import Optional
 from src.database.models import db, User, Role
 from src.security.encryption import EncryptionService
 
@@ -33,7 +34,7 @@ class UserService:
         db.session.commit()
         return user
 
-    def authenticate(self, email: str, password: str) -> User | None:
+    def authenticate(self, email: str, password: str) -> Optional[User]:
         email_hash = self._hash_email(email)
         user = User.query.filter_by(email_hash=email_hash).first()
         if user and user.check_password(password):

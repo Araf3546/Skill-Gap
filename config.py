@@ -13,6 +13,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hour
     UPLOAD_FOLDER = 'data/uploads'
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
+    REDIS_URL = os.environ.get('REDIS_URL')
     # Encryption key (Day 13 generates this)
     FERNET_KEY = os.environ.get('FERNET_KEY')
     

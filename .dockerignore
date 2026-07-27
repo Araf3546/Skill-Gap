@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.git/
+.gitignore
+tests/
+data/uploads/
+*.db
+.pytest_cache/
+key_metadata.json

@@ -1,3 +1,4 @@
+import hashlib
 import re
 from typing import Any
 
@@ -9,6 +10,8 @@ except Exception:  # pragma: no cover - optional dependency fallback
     np = None
     SentenceTransformer = None
     cosine_similarity = None
+
+from src.cache.redis_client import cache
 
 class SkillMatcher:
     def __init__(self):
@@ -26,7 +29,15 @@ class SkillMatcher:
         """Convert skill to vector"""
         if self.fallback_mode or self.model is None:
             return skill
-        return self.model.encode(skill, convert_to_tensor=False)
+
+        cache_key = f"embedding:{hashlib.sha256(skill.lower().strip().encode()).hexdigest()}"
+        cached = cache.get(cache_key)
+        if cached is not None and np is not None:
+            return np.array(cached)
+
+        embedding = self.model.encode(skill, convert_to_tensor=False)
+        cache.set(cache_key, embedding.tolist(), ttl_seconds=30 * 24 * 3600)
+        return embedding
 
     def _normalize_skill(self, skill: str) -> str:
         return re.sub(r"[^a-z0-9\+\#]+", " ", skill.lower()).strip()
